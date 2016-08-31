@@ -1,0 +1,191 @@
+---
+title: "Usability and Potential Analysis of News Articles"
+output:
+  html_document:
+    toc: true
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+## Introduction
+
+In this brief analysis, we examine the usability of the news article scrapped
+and it's potential uses. In addition, this opens up the necessary work required
+to utilise the news articles for predicting food prices. This analysis focus
+solely on the commodity wheat.
+
+Two datasets are involved in this basic analysis. The first dataset is
+**amis_articles_27_07_2016.feather** containing news articles which was scrapped
+by Luca. The second dataset **wheat_index_igc.csv** is the wheat index obtained
+from IGC.
+
+## Data processing
+
+The following snippetes read, process and merge the data to a suitable format
+for analysis.
+
+```{r }
+library(feather)
+library(dplyr)
+library(magrittr)
+library(zoo)
+
+## Initialisation
+key_word = "wheat"
+file = "amis_articles_27_07_2016.feather"
+
+## NOTE (Michael): Should allow multiple key words.
+
+## Transform dates and check whether the article contains the key word wheat
+articles =
+    read_feather(file) %>%
+    mutate(date = as.Date(date),
+           hasKeyWord = grepl(key_word, article))
+
+## Count the number of articles containing key word per day
+articleCount =
+    articles %>%
+    subset(., hasKeyWord == TRUE) %>%
+    group_by(date) %>%
+    summarise(article_count = n()) %>%
+    mutate(contain_article = article_count != 0)
+
+## Read the wheat price data.
+wheatPrice.df =
+    read.csv(file = "wheat_index_igc.csv", stringsAsFactors = FALSE) %>%
+    mutate(date = as.Date(date, format = "%m/%d/%Y"),
+           log_return = c(NA, diff(log(wheat_index_igc))),
+           abs_log_return = abs(log_return),
+           price_change = as.numeric(c(NA, diff(wheat_index_igc) != 0)))
+
+## Merge the article count and price data
+merged.df =
+    merge(articleCount,
+          wheatPrice.df, by = "date", all = TRUE) %>%
+    mutate(article_count = replace(article_count, is.na(article_count), 0),
+           contain_article = replace(contain_article, is.na(contain_article), FALSE))
+```
+
+Below we first show the time series plot.
+
+```{r}
+## Time series plot
+merged.df %>%
+    read.zoo %>%
+    plot
+```
+
+From the graph above, it seems we have very little information from news source
+relevant to wheat prior to 2010. Below we will subset the data to avoid
+distortion of the analysis.
+
+```{r}
+## Subset the data after 2010
+subsetted.df =
+    merged.df %>%
+    subset(date >= as.Date("2010-01-01"))
+
+## Time series plot
+subsetted.df %>%
+    read.zoo %>%
+    plot
+``` 
+
+## Assessing predictability
+
+In this section, we conduct some very basic analysis on the predicatbility based
+on the counts of the articles.
+
+This analysis does not aim to draw any conclusion, rather, we seek to identify
+areas of work.
+
+If we are to rely on information extracted from news article and predict the
+wheat price, then a simple method do so is to simply plot whether the log return
+of the time series respond to the presence of news articles.
+
+The following plot shows the distribution of the absolute log return with
+respect to the presence of news article.
+
+```{r}
+library(ggplot2)
+ggplot(data = subsetted.df,
+       aes(x = abs_log_return, colour = contain_article)) +
+    geom_density()
+```
+
+Although we don't expect the market to be solely driven by the response to
+public media, however, if this was the case then the absolute log return should
+show two separate classes distinguish by whether a news article about wheat is
+present. As expected, this does not seem to be the case.
+
+Let us take a closer look at the articles. Below we provide a few articles which
+contains the key word `wheat` and examine the contain.
+
+
+The article below although containing wheat and prices, however, it is
+associated with trade. This does not appear to me should affect the global wheat
+price as they are quoted in USD.
+
+```{r, results='asis'}
+articles$article[articles$hasKeyWord][3]
+```
+
+The next article descibes the abolish of export duty. This again is associated
+with trade rather than the wheat price.
+
+```{r, results='asis'}
+articles$article[articles$hasKeyWord][5]
+```
+
+
+This article although related to the production of wheat, however, it is
+particular to a single company. This may be more appropriate for equity analysis
+rather than commodity price.
+
+```{r, results='asis'}
+articles$article[articles$hasKeyWord][100]
+```
+
+The final article shown below relates to the development of organic wheat and
+increased production. However, we need to take into account of the size of
+organic wheat.
+
+```{r, results='asis'}
+articles$article[articles$hasKeyWord][3000]
+```
+
+
+## Potential Work Areas
+
+Below we propose the following work in order to improve the usability. 
+
+### Create Commodity Tags
+
+As we have done in this brief analysis, we have identified articles which
+contains the key word `wheat`. We should tag all articles with relevant key
+words in order to associate the relevant sentimental index to the respective
+commodity.
+
+### Create Cluster Tags
+
+From the sample of the articles above, we can see although wheat is contained in
+all of the article, but they may relate to different dimensions. From trade,
+equity to technological improvements. If we can also create tags which describe
+the nature of the article, this will certainly further improve the
+predictability and the relevance of the information.
+
+### Response Function
+
+In the above analsis, we have only shown the relationship per day to day. We
+should investigate models which can capture the response of the market with
+respect to new informations.
+
+
+## Conclusion
+
+The key find of this preliminary analysis shows that in order to efficiently
+utilise the news content, we have to take an extra step to extract the relevant
+information from the news article that is relevant to the food price.
