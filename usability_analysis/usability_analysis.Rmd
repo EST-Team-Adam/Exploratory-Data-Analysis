@@ -1,5 +1,5 @@
 ---
-title: "Usability and Potential Analysis of News Articles"
+title: "Usability Analysis of News Articles and Textual information"
 output:
   html_document:
     toc: true
@@ -13,9 +13,9 @@ knitr::opts_chunk$set(cache=TRUE)
 ## Introduction
 
 In this brief analysis, we examine the usability of the news article scrapped
-and it's potential uses. In addition, this opens up the necessary work required
-to utilise the news articles for predicting food prices. This analysis focus
-solely on the commodity wheat.
+and examine additional refinements. This opens up the necessary work required to
+utilise the news articles for predicting food prices. The wheat commodity is
+used for this particular exercise.
 
 Two datasets are involved in this basic analysis. The first dataset is
 **amis_articles_27_07_2016.feather** containing news articles which was scrapped
@@ -87,11 +87,6 @@ distortion of the analysis.
 subsetted.df =
     merged.df %>%
     subset(date >= as.Date("2010-01-01"))
-
-## Time series plot
-subsetted.df %>%
-    read.zoo %>%
-    plot
 ``` 
 
 ## Assessing predictability
@@ -100,7 +95,7 @@ In this section, we conduct some very basic analysis on the predicatbility based
 on the counts of the articles.
 
 This analysis does not aim to draw any conclusion, rather, we seek to identify
-areas of work.
+areas of improvement and refinement.
 
 If we are to rely on information extracted from news article and predict the
 wheat price, then a simple method do so is to simply plot whether the log return
