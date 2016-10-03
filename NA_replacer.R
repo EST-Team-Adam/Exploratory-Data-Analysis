@@ -2,7 +2,7 @@
 # and soybeans 1994-2005 prices) using ARIMA models.
 # First df column must contain date.
 
-NA_replacer <- function(df, pq=c(1,1)) {
+NA_replacer_ARMA <- function(df, pq=c(1,1)) {
   
   if(!is.data.frame(df)){
     df <- data.frame(df)
@@ -37,6 +37,20 @@ NA_replacer <- function(df, pq=c(1,1)) {
           column * 100
           })
         )
+}
+
+
+NA_replacer_splines <- function(df) {
+
+for (i in 2:length(df)) {
+           NA.ind <- which(is.na(df[,i]))
+           for (j in 1:length(NA.ind)) {
+             df[NA.ind[j],i] <- 
+               predict(smooth.spline(df[1:NA.ind[j]-1,i], spar = NULL),NA.ind[j])$y
+ }
+}
+
+return(df)
 }
 
 
