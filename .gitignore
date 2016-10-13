@@ -1,0 +1,5 @@
+*.feather
+usability_analysis_cache/
+usability_analysis_files/
+figure/
+.Rhistory
